@@ -1,7 +1,7 @@
 // CPSC 340 Operating Systems Concepts and Design:
-//# OpSys---Programming-Assignment-3-LRU-Page-Replacement-Using-Stack-Clock
 // Riley Wasdyke
 // 11/22/2024
+// Programming Assignment 3: LRU Page Replacement Using Stack and Clock Algorithms
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -9,14 +9,20 @@ import java.util.*;
 
 public class Main {
 
+    // Stores page reference strings loaded from the file
     private static List<List<Integer>> pageReferences = new ArrayList<>();
+
+    // Stores page faults results for the stack-based LRU implementation
     private static List<Integer> stackLRUResults = new ArrayList<>();
+
+    // Stores page faults results for the clock-based LRU implementation
     private static List<Integer> clockLRUResults = new ArrayList<>();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         int choice;
 
+        // Main program loop to display menu and process user input
         do {
             System.out.println("\nProgram Menu:");
             System.out.println("1. Load Page References from Pages.txt");
@@ -27,7 +33,7 @@ public class Main {
 
             System.out.print("Enter your choice: ");
             choice = scanner.nextInt();
-            scanner.nextLine();
+            scanner.nextLine(); // Consume newline character
 
             switch (choice) {
                 case 1:
@@ -50,17 +56,20 @@ public class Main {
             }
         } while (choice != 5);
 
-        scanner.close();
+        scanner.close(); // Close scanner to free resources
     }
 
+    // Method to load page reference strings from a file
     public static void loadPageReferences() {
         String fileName = "Pages.txt";
 
         try (Scanner fileScanner = new Scanner(new File(fileName))) {
+            // Clear any previous data
             pageReferences.clear();
             stackLRUResults.clear();
             clockLRUResults.clear();
 
+            // Read and parse each line in the file
             while (fileScanner.hasNextLine()) {
                 String line = fileScanner.nextLine().trim();
                 if (!line.isEmpty()) {
@@ -69,7 +78,7 @@ public class Main {
                     for (String num : numbers) {
                         num = num.trim();
                         try {
-                            pageList.add(Integer.parseInt(num));
+                            pageList.add(Integer.parseInt(num)); // Parse valid numbers
                         } catch (NumberFormatException e) {
                             System.out.println("Invalid number format in file: " + num);
                         }
@@ -78,6 +87,7 @@ public class Main {
                 }
             }
 
+            // Print loaded page references
             System.out.println("\nPage references loaded from Pages.txt:");
             for (List<Integer> pageList : pageReferences) {
                 System.out.println(pageList);
@@ -88,16 +98,18 @@ public class Main {
         }
     }
 
+    // Method to simulate LRU page replacement using a stack-based approach
     public static void runLRUStack() {
         if (pageReferences.isEmpty()) {
             System.out.println("Please load page references first.");
             return;
         }
 
-        int frameSize = 3;
-        List<Integer> pageFrame = new ArrayList<>();
+        int frameSize = 3; // Set memory frame size
+        List<Integer> pageFrame = new ArrayList<>(); // Represents the memory frame
         stackLRUResults.clear();
 
+        // Process each page reference string
         for (List<Integer> pageList : pageReferences) {
             System.out.println("Processing page reference string: " + pageList);
             int pageFaults = 0;
@@ -105,11 +117,13 @@ public class Main {
 
             for (int page : pageList) {
                 if (pageFrame.contains(page)) {
+                    // If the page is already in memory, move it to the front (most recently used)
                     pageFrame.remove(Integer.valueOf(page));
                     pageFrame.add(0, page);
                 } else {
+                    // If the page is not in memory, add it, evicting the least recently used if necessary
                     if (pageFrame.size() == frameSize) {
-                        pageFrame.remove(pageFrame.size() - 1);
+                        pageFrame.remove(pageFrame.size() - 1); // Remove LRU page
                     }
                     pageFrame.add(0, page);
                     pageFaults++;
@@ -121,9 +135,10 @@ public class Main {
         }
     }
 
+    // Class to represent a page for the clock algorithm
     static class Page {
         int pageNumber;
-        boolean secondChance;
+        boolean secondChance; // Indicates whether the page has a second chance
 
         public Page(int pageNumber) {
             this.pageNumber = pageNumber;
@@ -131,16 +146,18 @@ public class Main {
         }
     }
 
+    // Method to simulate LRU page replacement using a clock-based approach
     public static void runLRUClock() {
         if (pageReferences.isEmpty()) {
             System.out.println("Please load page references first.");
             return;
         }
 
-        int frameSize = 3;
-        LinkedList<Page> pageFrame = new LinkedList<>();
+        int frameSize = 3; // Set memory frame size
+        LinkedList<Page> pageFrame = new LinkedList<>(); // Represents the memory frame
         clockLRUResults.clear();
 
+        // Process each page reference string
         for (List<Integer> pageList : pageReferences) {
             System.out.println("Processing page reference string: " + pageList);
             int pageFaults = 0;
@@ -149,15 +166,17 @@ public class Main {
             for (int page : pageList) {
                 boolean pageFound = false;
 
+                // Check if the page is already in memory
                 for (Page p : pageFrame) {
                     if (p.pageNumber == page) {
-                        p.secondChance = true;
+                        p.secondChance = true; // Give the page a second chance
                         pageFound = true;
                         break;
                     }
                 }
 
                 if (!pageFound) {
+                    // If the page is not in memory, handle replacement
                     if (pageFrame.size() < frameSize) {
                         pageFrame.addLast(new Page(page));
                         pageFaults++;
@@ -165,9 +184,11 @@ public class Main {
                         while (true) {
                             Page oldestPage = pageFrame.getFirst();
                             if (oldestPage.secondChance) {
+                                // Remove second chance and move to the back of the queue
                                 oldestPage.secondChance = false;
                                 pageFrame.addLast(pageFrame.removeFirst());
                             } else {
+                                // Replace the page without a second chance
                                 pageFrame.removeFirst();
                                 pageFrame.addLast(new Page(page));
                                 pageFaults++;
@@ -177,6 +198,7 @@ public class Main {
                     }
                 }
 
+                // Display the current state of the memory frame
                 System.out.print("Memory frame: ");
                 for (Page p : pageFrame) {
                     System.out.print(p.pageNumber + " ");
@@ -188,6 +210,7 @@ public class Main {
         }
     }
 
+    // Method to display a summary of results for both algorithms
     public static void displayResultsSummary() {
         if (pageReferences.isEmpty()) {
             System.out.println("Please load page references first.");
@@ -196,12 +219,14 @@ public class Main {
 
         System.out.println("\nResults Summary:");
 
+        // Display stack-based LRU results
         System.out.println("\nLRU Stack Results:");
         for (int i = 0; i < stackLRUResults.size(); i++) {
             System.out.println("Reference string " + pageReferences.get(i) +
                     " -> Page Faults: " + stackLRUResults.get(i));
         }
 
+        // Display clock-based LRU results
         System.out.println("\nLRU Clock Results:");
         for (int i = 0; i < clockLRUResults.size(); i++) {
             System.out.println("Reference string " + pageReferences.get(i) +
@@ -209,6 +234,7 @@ public class Main {
         }
     }
 
+    // Method to exit the program
     public static void exitProgram() {
         System.out.println("Exiting program...");
         System.exit(0);
